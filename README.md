@@ -6,7 +6,7 @@ Teras is not an Elaborate Recursive Acronym String, but useful library for my pr
 Teras requires Python 3.5 or higher.
 
 ```sh
-$ pip install git+https://github.com/chantera/teras
+$ pip install git+https://github.com/fracivilization/teras
 ```
 
 License
