@@ -18,10 +18,12 @@ class Trainer(Dispatcher):
 
     def _initialize(self):
         def update(optimizer, loss):
-            # suppose chainer API
-            optimizer.target.cleargrads()
+            # suppose torch API
+            # optimizer.target.cleargrads()
+            optimizer.zero_grad()
             loss.backward()
-            optimizer.update()
+            # optimizer.update()
+            optimizer.step()
         self._update = update
         self._converter = None
         self._reporter = None
