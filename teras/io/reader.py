@@ -317,6 +317,72 @@ class TreeReader(Reader):
         with open(self.file, mode='r', encoding='utf-8') as f:
             yield from _parse_tree(f, self.left_bracket, self.right_bracket)
 
+import re
+
+class WikiReader(Reader):
+
+    def _get_iterator(self):
+        start_pat = re.compile('^<doc id="(\d+)" url="(.+)" title="(.+)">$')
+        end_pat = re.compile('^</doc>$')
+        article_body = []
+        with open(self.file, mode='r', encoding='utf-8') as f:
+            for line in f:
+                if start_pat.findall(line):
+                    article_id, url, article_name = start_pat.findall(line)[0]
+                    article_body = []
+                elif end_pat.match(line):
+                    yield article_id, url, article_name, article_body
+                else:
+                    article_body += [line]
+
+import re
+class AnchoredTextIterator:
+    def __init__(self, article_body):
+        self.article_body = article_body
+
+    def __iter__(self):
+        self._iterator = self._get_iterator()
+        return self
+
+    def remove_anchors_from_text(self, anchor_matches):
+        x = 3
+        readed_original_text_str_pos = 0
+        readed_original_text = ''
+        for m in anchor_matches:
+            (start, end), entity_span, mention_span = m.regs
+            entity = self.article_body[entity_span[0]:entity_span[1]]
+            mention = self.article_body[mention_span[0]:mention_span[1]]
+            readed_original_text += self.article_body[readed_original_text_str_pos:start]
+            readed_original_text += mention
+            readed_original_text_str_pos = end
+        readed_original_text += self.article_body[readed_original_text_str_pos:]
+        return readed_original_text
+
+    def _get_iterator(self):
+        anchor_pat = re.compile('<a href="([^"]+)">([^<]+)</a>')
+        anchors = list(anchor_pat.finditer(self.article_body))
+        for match in anchors:
+            # anchorsから一つ取り除いて、それ以外のanchorは全てhyperlinkを除去した状態にする
+            the_match_pop_outed_anchors = [anc for anc in anchors if anc != match]
+            yield self.remove_anchors_from_text(the_match_pop_outed_anchors)
+
+    def reset(self):
+        self._iterator = None
+
+    def __next__(self):
+        try:
+            return self._iterator.__next__()
+        except Exception as e:
+            self.reset()
+            raise e
+
+
+class AnchoredWikiReader(WikiReader):
+    def _get_iterator(self):
+        iterator = super()._get_iterator()
+        for article_id, url, article_name, article_body in iterator:
+            for paragraph in [line.strip() for line in article_body if line != '\n']:
+                yield article_id, url, article_name, AnchoredTextIterator(paragraph)
 
 def read_tree(file, left_bracket='(', right_bracket=')'):
     if isinstance(file, pathlib.PurePath):
