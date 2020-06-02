@@ -32,7 +32,7 @@ def get_gpu_info(nvidia_smi_path='nvidia-smi', keys=('index', 'uuid'), no_units=
 
 def get_process_info_on_gpus(nvidia_smi_path='nvidia-smi', keys=('pid','name','gpu_uuid','used_gpu_memory'), no_units=True):
     nu_opt = '' if not no_units else ',nounits'
-    cmd = '%s --query-gpu=%s --format=csv,noheader%s' % (nvidia_smi_path, ','.join(keys), nu_opt)
+    cmd = '%s --query-compute-apps=%s --format=csv,noheader%s' % (nvidia_smi_path, ','.join(keys), nu_opt)
     output = subprocess.check_output(cmd, shell=True)
     lines = output.decode().split('\n')
     lines = [ line.strip() for line in lines if line.strip() != '' ]
